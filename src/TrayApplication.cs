@@ -19,7 +19,7 @@ public sealed class TrayApplication : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => Quit());
 
-        uint initialLayout = _systemEvents.CurrentLayout;
+        uint initialLayout = _systemEvents.ForegroundWindowLayout;
         string initialCode = TrayIconGenerator.GetLanguageCode(initialLayout);
         _tray = new NotifyIcon
         {
@@ -34,9 +34,8 @@ public sealed class TrayApplication : ApplicationContext
         _tray.Visible = true;
     }
 
-    private void OnLayoutChanging(object? sender, LayoutChangeEventArgs e) => _overlay.ShowLayout(e.LayoutId, 10_000);
-
-    private void OnLayoutChanged(object? sender, LayoutChangeEventArgs e) => _overlay.ShowLayout(e.LayoutId, 1_000);
+    private void OnLayoutChanging(object? sender, LayoutChangeEventArgs e) => _overlay.ShowLayout(e.LayoutId, 5_000);
+    private void OnLayoutChanged(object? sender, LayoutChangeEventArgs e) => _overlay.ShowLayout(e.LayoutId, 500);
 
     private static void ShowAbout()
     {
