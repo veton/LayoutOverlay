@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace LayoutOverlay;
@@ -28,23 +29,14 @@ public sealed class TrayApplication : ApplicationContext
             Visible = false
         };
         _trayIcon = _tray.Icon;
-        _systemEvents.LayoutChanging += OnLayoutRequested;
-        _systemEvents.LayoutChanged += OnLayoutRequested;
-        _systemEvents.ForegroundLayoutChanged += OnForegroundLayoutChanged;
+        _systemEvents.LayoutChanging += OnLayoutChanging;
+        _systemEvents.LayoutChanged += OnLayoutChanged;
         _tray.Visible = true;
     }
 
-    private void OnLayoutRequested(object? sender, LayoutEventArgs e) => _overlay.ShowLayout(e.LayoutId);
+    private void OnLayoutChanging(object? sender, LayoutChangeEventArgs e) => _overlay.ShowLayout(e.LayoutId, 10_000);
 
-    private void OnForegroundLayoutChanged(object? sender, LayoutEventArgs e)
-    {
-        var nextIcon = TrayIconGenerator.Create(e.LayoutId);
-        var previousIcon = _trayIcon;
-        _tray.Icon = nextIcon;
-        _trayIcon = nextIcon;
-        _tray.Text = $"Layout Overlay - {TrayIconGenerator.GetLanguageCode(e.LayoutId)}";
-        previousIcon?.Dispose();
-    }
+    private void OnLayoutChanged(object? sender, LayoutChangeEventArgs e) => _overlay.ShowLayout(e.LayoutId, 1_000);
 
     private static void ShowAbout()
     {
@@ -64,9 +56,10 @@ public sealed class TrayApplication : ApplicationContext
         {
             try
             {
-                Process.Start(new ProcessStartInfo(RepositoryUrl) { UseShellExecute = true })?.Dispose();
+                ProcessStartInfo startInfo = new(RepositoryUrl) { UseShellExecute = true };
+                Process.Start(startInfo)?.Dispose();
             }
-            catch (System.ComponentModel.Win32Exception)
+            catch (Win32Exception)
             {
                 MessageBox.Show("Could not open the default browser.", "Layout Overlay",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -77,9 +70,9 @@ public sealed class TrayApplication : ApplicationContext
 
     private void Quit()
     {
-        _systemEvents.LayoutChanging -= OnLayoutRequested;
-        _systemEvents.LayoutChanged -= OnLayoutRequested;
-        _systemEvents.ForegroundLayoutChanged -= OnForegroundLayoutChanged;
+        _systemEvents.LayoutChanging -= OnLayoutChanging;
+        _systemEvents.LayoutChanged -= OnLayoutChanged;
+        
         _overlay.Dispose();
         _systemEvents.Dispose();
         _tray.Visible = false;

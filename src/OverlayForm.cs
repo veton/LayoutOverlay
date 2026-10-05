@@ -21,7 +21,7 @@ public sealed class OverlayForm : Form
     private static readonly Color ForegroundColor = Color.White;
     private static readonly Font LabelFont = new("Segoe UI", FontSize, FontStyle.Regular);
 
-    private readonly System.Windows.Forms.Timer _hold = new() { Interval = 800 };
+    private readonly System.Windows.Forms.Timer _hold = new();
     private readonly System.Windows.Forms.Timer _fade = new() { Interval = 25 };
 
     private readonly List<uint> _layouts = [];
@@ -39,7 +39,11 @@ public sealed class OverlayForm : Form
 
         Size = new Size((int)(FormWidth * DeviceScale), (int)(FormWidth * DeviceScale));
 
-        _hold.Tick += (_, _) => { _hold.Stop(); _fade.Start(); };
+        _hold.Tick += (_, _) =>
+        {
+            _hold.Stop();
+            _fade.Start();
+        };
         _fade.Tick += (_, _) =>
         {
             Opacity -= 0.05;
@@ -74,10 +78,11 @@ public sealed class OverlayForm : Form
         previousRegion?.Dispose();
     }
 
-    public void ShowLayout(uint langId)
+    public void ShowLayout(uint langId, int holdMilliseconds)
     {
         _hold.Stop();
         _fade.Stop();
+        _hold.Interval = holdMilliseconds;
         _activeLayout = langId;
         _layouts.Clear();
 
