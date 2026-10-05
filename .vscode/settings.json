@@ -1,9 +1,20 @@
 {
+    "cSpell": {
+        "words": [
+            "Argb",
+            "borderless",
+            "hwnd",
+            "Segoe"
+        ],
+        "ignoreRegExpList": [
+            "/\\b[A-Z_]+\\b/g"
+        ]
+    },
     "cSpell.words": [
         "Argb",
         "borderless",
-        "NOACTIVATE",
-        "Segoe",
-        "TOOLWINDOW"
+        "Hicon",
+        "hwnd",
+        "Segoe"
     ]
 }

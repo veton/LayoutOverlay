@@ -9,6 +9,6 @@ public static class Program
         if (!isNew) return;
 
         ApplicationConfiguration.Initialize();
-        Application.Run(new TrayContext());
+        Application.Run(new TrayApplication());
     }
 }

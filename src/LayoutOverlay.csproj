@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <ApplicationIcon>LayoutOverlay.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/LayoutOverlay.ico</ApplicationIcon>
     <AssemblyName>LayoutOverlay</AssemblyName>
     <Version>0.0.1</Version>
   </PropertyGroup>

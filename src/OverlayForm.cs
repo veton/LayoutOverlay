@@ -7,17 +7,24 @@ namespace LayoutOverlay;
 /// <summary>Large, borderless, click-through, non-activating overlay that fades out.</summary>
 public sealed class OverlayForm : Form
 {
-    private const float PopupScale = 1.25f;
-    private const int WS_EX_TRANSPARENT = 0x20;         // click-through
-    private const int WS_EX_TOOLWINDOW = 0x80;          // no Alt+Tab entry
-    private const int WS_EX_LAYERED = 0x80000;
-    private const int WS_EX_NOACTIVATE = 0x08000000;    // never steals focus
+    // Sizes
+    private const int FormWidth = 450;
+    private const int FontSize = 28;
+    private const float PaddingMultiplier = 1.5f;
+    private const float LabelHeightMultiplier = 2.4f;
+    private readonly float DeviceScale = 1;
+
+    // Colors
+    private const double FormOpacity = 0.7;
+    private static readonly Color BackgroundColor = Color.FromArgb(128, 128, 128);
+    private static readonly Color SelectionColor = Color.FromArgb(64, 64, 64);
+    private static readonly Color ForegroundColor = Color.White;
+    private static readonly Font LabelFont = new("Segoe UI", FontSize, FontStyle.Regular);
 
     private readonly System.Windows.Forms.Timer _hold = new() { Interval = 800 };
     private readonly System.Windows.Forms.Timer _fade = new() { Interval = 25 };
-    private readonly Font _labelFont = new("Segoe UI", 32, FontStyle.Regular);
 
-    private readonly List<uint> _layouts = new();
+    private readonly List<uint> _layouts = [];
     private uint _activeLayout;
 
     public OverlayForm()
@@ -27,16 +34,16 @@ public sealed class OverlayForm : Form
         ShowInTaskbar = false;
         TopMost = true;
         DoubleBuffered = true;
-        BackColor = Color.FromArgb(153, 153, 153);
+        BackColor = BackgroundColor;
+        DeviceScale = DeviceDpi / 96f;
 
-        float scale = DeviceDpi / 96f;
-        Size = new Size((int)(400 * scale), (int)(300 * scale));
+        Size = new Size((int)(FormWidth * DeviceScale), (int)(FormWidth * DeviceScale));
 
         _hold.Tick += (_, _) => { _hold.Stop(); _fade.Start(); };
         _fade.Tick += (_, _) =>
         {
-            Opacity -= 0.06;
-            if (Opacity <= 0.05)
+            Opacity -= 0.05;
+            if (Opacity < 0.05)
             {
                 _fade.Stop();
                 Hide();
@@ -51,7 +58,7 @@ public sealed class OverlayForm : Form
         get
         {
             var cp = base.CreateParams;
-            cp.ExStyle |= WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE;
+            cp.ExStyle |= Native.WS_EX_TRANSPARENT | Native.WS_EX_TOOLWINDOW | Native.WS_EX_LAYERED | Native.WS_EX_NOACTIVATE;
             return cp;
         }
     }
@@ -60,7 +67,8 @@ public sealed class OverlayForm : Form
     {
         base.OnSizeChanged(e);
         if (Width <= 0 || Height <= 0) return;
-        using var outline = RoundedRectangle(ClientRectangle, 32 * DeviceDpi / 96f * PopupScale);
+
+        using var outline = RoundedRectangle(ClientRectangle, FontSize * DeviceScale);
         var previousRegion = Region;
         Region = new Region(outline);
         previousRegion?.Dispose();
@@ -72,22 +80,28 @@ public sealed class OverlayForm : Form
         _fade.Stop();
         _activeLayout = langId;
         _layouts.Clear();
+
         foreach (InputLanguage language in InputLanguage.InstalledInputLanguages)
         {
             uint layout = (uint)(language.Handle.ToInt64() & 0xFFFF);
-            if (!_layouts.Contains(layout)) _layouts.Add(layout);
+            if (!_layouts.Contains(layout))
+                _layouts.Add(layout);
         }
-        if (!_layouts.Contains(langId)) _layouts.Add(langId);
 
-        float scale = DeviceDpi / 96f * PopupScale;
-        Size = new Size((int)(340 * scale), (int)((28 + 82 * _layouts.Count + 28) * scale));
+        if (!_layouts.Contains(langId))
+            _layouts.Add(langId);
+
+        float heightMultiplier = _layouts.Count * LabelHeightMultiplier + 2 * PaddingMultiplier;
+        Size = new Size((int)(FormWidth * DeviceScale), (int)(heightMultiplier * FontSize * DeviceScale));
 
         // Center on the monitor where the mouse cursor is.
         var area = Screen.FromPoint(Cursor.Position).Bounds;
         Location = new Point(area.X + (area.Width - Width) / 2, area.Y + (area.Height - Height) / 2);
 
-        Opacity = 0.7;
-        if (!Visible) Show();
+        Opacity = FormOpacity;
+        if (!Visible)
+            Show();
+
         Invalidate();
         _hold.Start();
     }
@@ -106,11 +120,10 @@ public sealed class OverlayForm : Form
             FormatFlags = StringFormatFlags.NoWrap
         };
 
-        float scale = DeviceDpi / 96f * PopupScale;
-        float padding = 28 * scale;
-        using var selection = new SolidBrush(Color.FromArgb(68, 68, 68));
-        using var foreground = new SolidBrush(Color.White);
-        using var selectionOutline = new Pen(Color.White, 2 * scale)
+        float padding = PaddingMultiplier * FontSize * DeviceScale;
+        using var selection = new SolidBrush(SelectionColor);
+        using var foreground = new SolidBrush(ForegroundColor);
+        using var selectionOutline = new Pen(Color.White, 3 * DeviceScale)
         {
             Alignment = PenAlignment.Inset
         };
@@ -121,13 +134,13 @@ public sealed class OverlayForm : Form
                 ClientSize.Width - padding * 2, rowHeight);
             if (_layouts[index] == _activeLayout)
             {
-                using var highlight = RoundedRectangle(row, 14 * scale);
+                using var highlight = RoundedRectangle(row, 14 * DeviceScale);
                 g.FillPath(selection, highlight);
                 g.DrawPath(selectionOutline, highlight);
             }
 
-            row.Inflate(-12 * scale, 0);
-            g.DrawString(LayoutName(_layouts[index]), _labelFont, foreground, row, sf);
+            row.Inflate(-12 * DeviceScale, 0);
+            g.DrawString(LayoutName(_layouts[index]), LabelFont, foreground, row, sf);
         }
     }
 
@@ -162,7 +175,7 @@ public sealed class OverlayForm : Form
         {
             _hold.Dispose();
             _fade.Dispose();
-            _labelFont.Dispose();
+            LabelFont.Dispose();
         }
         base.Dispose(disposing);
     }
